@@ -1,1 +1,2274 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tauszig Családfa + Idővonal</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 25px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .header h1 {
+            color: #1e3c72;
+            font-size: 2.2rem;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .header .subtitle {
+            color: #666;
+            font-size: 1.1rem;
+        }
+
+        .controls {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+        }
+
+        .file-input {
+            position: absolute;
+            left: -9999px;
+        }
+
+        .file-input-label {
+            background: #28a745;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .file-input-label:hover {
+            background: #218838;
+            transform: translateY(-2px);
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            min-height: 48px;
+            touch-action: manipulation;
+        }
+
+        .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #0056b3;
+            transform: translateY(-2px);
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+            transform: translateY(-2px);
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+            transform: translateY(-2px);
+        }
+
+        .search-box {
+            flex: 1;
+            min-width: 300px;
+            position: relative;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 12px 45px 12px 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #007bff;
+        }
+
+        .search-icon {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #6c757d;
+        }
+
+        .stats {
+            display: flex;
+            gap: 20px;
+            font-size: 14px;
+            color: #666;
+            align-items: center;
+        }
+
+        .stat-item {
+            background: #f8f9fa;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-weight: 600;
+        }
+
+        .nav-container {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 20px;
+            background: #f8f9fa;
+            padding: 5px;
+            border-radius: 10px;
+        }
+        
+        .nav-tab {
+            flex: 1;
+            padding: 15px 20px;
+            border: none;
+            border-radius: 8px;
+            background: transparent;
+            color: #6c757d;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .nav-tab:hover {
+            background: #e9ecef;
+            color: #495057;
+        }
+        
+        .nav-tab.active {
+            background: #007bff;
+            color: white;
+            box-shadow: 0 2px 4px rgba(0,123,255,0.3);
+        }
+
+        .table-container {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            max-height: 70vh;
+            overflow: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+            min-width: 1800px;
+        }
+
+        th {
+            background: #f8f9fa;
+            padding: 15px 8px;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid #dee2e6;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        td {
+            padding: 12px 8px;
+            border-bottom: 1px solid #e9ecef;
+            vertical-align: top;
+        }
+
+        tr:hover {
+            background: #f8f9fa;
+        }
+
+        .narrow {
+            width: 60px;
+            max-width: 60px;
+        }
+
+        .medium {
+            width: 120px;
+            max-width: 120px;
+        }
+
+        .wide {
+            min-width: 150px;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 5px;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .edit-btn, .delete-btn {
+            border: none;
+            padding: 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            min-width: 40px;
+            min-height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .edit-btn {
+            background: #ffc107;
+            color: #212529;
+        }
+
+        .edit-btn:hover {
+            background: #e0a800;
+            transform: translateY(-2px);
+        }
+
+        .delete-btn {
+            background: #dc3545;
+            color: white;
+        }
+
+        .delete-btn:hover {
+            background: #c82333;
+            transform: translateY(-2px);
+        }
+
+        .navigation-container {
+            padding: 20px;
+            background: white;
+            border-radius: 12px;
+        }
+        
+        .navigation-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e9ecef;
+        }
+        
+        .navigation-header h3 {
+            color: #2c3e50;
+            margin: 0;
+        }
+        
+        .navigation-content {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            min-height: 400px;
+        }
+        
+        .person-card {
+            margin: 8px 0;
+            padding: 12px 50px 12px 12px;
+            background: white;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            position: relative;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            user-select: none;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .person-card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            transform: translateY(-1px);
+        }
+        
+        .selection-icon {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 24px;
+            cursor: pointer;
+            z-index: 5;
+            width: 35px;
+            height: 35px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+        }
+        
+        .selection-icon:hover {
+            background: rgba(0, 123, 255, 0.1);
+            transform: translateY(-50%) scale(1.1);
+        }
+        
+        .person-card.selected {
+            background: linear-gradient(45deg, #fff8dc, #fffacd);
+            border-color: #ff6b6b;
+            border-width: 3px;
+        }
+        
+        .person-card.focused {
+            border-color: #dc3545;
+            background: linear-gradient(45deg, #ffffff, #ffebee);
+            border-width: 3px;
+        }
+        
+        .person-card.parent {
+            border-color: #007bff;
+            background: linear-gradient(45deg, #ffffff, #e3f2fd);
+        }
+        
+        .person-card.sibling {
+            border-color: #28a745;
+            background: linear-gradient(45deg, #ffffff, #e8f5e8);
+        }
+        
+        .person-card.child {
+            border-color: #ffc107;
+            background: linear-gradient(45deg, #ffffff, #fff8e1);
+        }
+        
+        .person-card.spouse {
+            border-color: #6f42c1;
+            background: linear-gradient(45deg, #ffffff, #f3e5f5);
+        }
+        
+        .person-card.selectable {
+            border-color: #6c757d;
+            background: #f8f9fa;
+        }
+        
+        .person-card.deceased {
+            opacity: 0.8;
+            border-style: dashed;
+        }
+        
+        .card-header {
+            font-size: 10px;
+            color: #666;
+            margin-bottom: 4px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .card-content {
+            flex: 1;
+        }
+        
+        .person-name {
+            font-weight: bold;
+            color: #2c3e50;
+            font-size: 1rem;
+            margin-bottom: 3px;
+        }
+        
+        .person-details {
+            color: #6c757d;
+            font-size: 0.85rem;
+        }
+        
+        .click-areas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            pointer-events: none;
+        }
+        
+        .click-left, .click-right {
+            flex: 1;
+            height: 100%;
+            pointer-events: auto;
+        }
+        
+        .click-left:hover {
+            background: rgba(255, 193, 7, 0.1);
+        }
+        
+        .click-right:hover {
+            background: rgba(220, 53, 69, 0.1);
+        }
+        
+        .no-data {
+            text-align: center;
+            color: #6c757d;
+            font-style: italic;
+            padding: 40px;
+        }
+
+        .legend {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+            font-size: 12px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            border: 2px solid;
+        }
+        
+        .legend-focused { border-color: #dc3545; background: #ffebee; }
+        .legend-parent { border-color: #007bff; background: #e3f2fd; }
+        .legend-sibling { border-color: #28a745; background: #e8f5e8; }
+        .legend-child { border-color: #ffc107; background: #fff8e1; }
+        .legend-spouse { border-color: #6f42c1; background: #f3e5f5; }
+
+        .unsaved-indicator {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            background: #ffc107;
+            color: #212529;
+            padding: 12px 18px;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 16px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            z-index: 1000;
+            animation: pulse 2s infinite;
+            border: 2px solid #e0a800;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 2% auto;
+            padding: 15px;
+            border-radius: 10px;
+            width: 95%;
+            max-width: 800px;
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        @media (max-width: 768px) {
+            .modal-content {
+                margin: 5% auto;
+                padding: 40px 15px 15px 15px;
+                width: 90%;
+                max-height: 85vh;
+            }
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .close {
+            color: #aaa;
+            position: absolute;
+            right: 15px;
+            top: 10px;
+            font-size: 32px;
+            font-weight: bold;
+            cursor: pointer;
+            z-index: 10;
+            line-height: 1;
+            padding: 5px 10px;
+        }
+
+        .close:hover {
+            color: #000;
+        }
+
+        .flame-icon {
+            font-size: 1.5rem;
+            color: #ffc107;
+        }
+
+        .drop-zone {
+            border: 3px dashed #007bff;
+            border-radius: 12px;
+            padding: 40px;
+            text-align: center;
+            background: rgba(255, 255, 255, 0.9);
+            color: #007bff;
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .drop-zone.dragover {
+            background: rgba(0, 123, 255, 0.1);
+            border-color: #0056b3;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+
+        .alert-danger {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+
+        .alert-warning {
+            background: #fff3cd;
+            border: 1px solid #ffecb5;
+            color: #856404;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+
+        /* IDŐVONAL STÍLUSOK */
+        .selected-persons-section {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .selected-persons-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .selected-person-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 20px;
+            margin: 4px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .remove-person-btn {
+            background: rgba(255,255,255,0.3);
+            border: none;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .remove-person-btn:hover {
+            background: rgba(255,255,255,0.5);
+            transform: scale(1.1);
+        }
+
+        .timeline-section {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .timeline-header {
+            margin-bottom: 24px;
+        }
+
+        .timeline-header h2 {
+            font-size: 24px;
+            color: #1f2937;
+            margin-bottom: 8px;
+        }
+
+        .timeline-info {
+            font-size: 14px;
+            color: #6b7280;
+        }
+
+        .timeline-axis {
+            position: relative;
+            padding: 40px 0;
+        }
+
+        .axis-line {
+            height: 3px;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            border-radius: 3px;
+            position: relative;
+        }
+
+        .year-markers {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 8px;
+            padding: 0 20px;
+        }
+
+        .year-marker {
+            font-size: 12px;
+            color: #6b7280;
+            font-weight: 600;
+        }
+
+        .events-container {
+            position: relative;
+            margin-top: 40px;
+        }
+
+        .event-icon {
+            position: absolute;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 3px solid white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            top: -24px;
+        }
+
+        .event-icon:hover {
+            transform: scale(1.2);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+        }
+
+        .event-icon.inactive {
+            opacity: 0.3;
+            cursor: default;
+            filter: grayscale(1);
+        }
+
+        .event-icon.inactive:hover {
+            transform: none;
+        }
+
+        .event-label {
+            position: absolute;
+            top: 35px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 11px;
+            color: #374151;
+            white-space: nowrap;
+            background: rgba(255,255,255,0.9);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 500;
+        }
+
+        .detail-panel {
+            position: fixed;
+            right: -500px;
+            top: 0;
+            width: 480px;
+            height: 100vh;
+            background: white;
+            box-shadow: -4px 0 12px rgba(0,0,0,0.2);
+            transition: right 0.3s ease;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .detail-panel.open {
+            right: 0;
+        }
+
+        .panel-header {
+            padding: 20px;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .panel-header h3 {
+            font-size: 18px;
+            color: #1f2937;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 28px;
+            cursor: pointer;
+            color: #6b7280;
+            line-height: 1;
+        }
+
+        .close-btn:hover {
+            color: #1f2937;
+        }
+
+        .panel-tabs {
+            display: flex;
+            border-bottom: 2px solid #e5e7eb;
+            background: #f9fafb;
+        }
+
+        .panel-tab {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            background: none;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            color: #6b7280;
+            transition: all 0.2s;
+        }
+
+        .panel-tab.active {
+            color: #667eea;
+            border-bottom: 3px solid #667eea;
+            margin-bottom: -2px;
+        }
+
+        .panel-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .document-item {
+            margin-bottom: 20px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .document-image {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .document-info {
+            padding: 12px;
+            background: #f9fafb;
+        }
+
+        .document-title {
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 4px;
+        }
+
+        .document-meta {
+            font-size: 13px;
+            color: #6b7280;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6b7280;
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        @media (max-width: 768px) {
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .search-box {
+                min-width: auto;
+            }
+
+            .stats {
+                justify-content: center;
+                flex-wrap: wrap;
+            }
+
+            table {
+                font-size: 12px;
+            }
+
+            th, td {
+                padding: 8px 4px;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+                gap: 3px;
+            }
+            
+            .person-card {
+                margin: 6px 0;
+                padding: 10px;
+            }
+            
+            .legend {
+                justify-content: center;
+            }
+
+            .detail-panel {
+                width: 100vw;
+                right: -100%;
+            }
+
+            .nav-tab {
+                font-size: 13px;
+                padding: 12px 8px;
+            }
+
+            #editModalTitle {
+                font-size: 16px;
+                margin-bottom: 15px;
+                padding-right: 30px;
+            }
+
+            .form-group {
+                margin-bottom: 12px;
+            }
+
+            .form-group label {
+                font-size: 13px;
+            }
+
+            .form-control {
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>
+                <span class="flame-icon">🕯️</span>
+                Tauszig Családfa + Idővonal
+            </h1>
+            <div class="subtitle">
+                Egyesített verzió • Kijelölés + Dokumentumok
+            </div>
+        </div>
+
+        <div id="alertContainer"></div>
+
+        <div id="unsavedIndicator" class="unsaved-indicator" style="display: none;">
+            ⚠️ VAN MENTETLEN MÓDOSÍTÁS! 💾 MENTSD EL!
+        </div>
+
+        <div class="nav-container">
+            <button onclick="setCurrentView('table')" id="tabTable" class="nav-tab active">
+                📊 CSV Szerkesztő
+            </button>
+            <button onclick="setCurrentView('navigation')" id="tabNavigation" class="nav-tab">
+                🧭 Családfa Navigátor
+            </button>
+            <button onclick="setCurrentView('timeline')" id="tabTimeline" class="nav-tab">
+                ⏱️ Dokumentumok (<span id="selectedCount">0</span>/5)
+            </button>
+        </div>
+
+        <div class="drop-zone" id="dropZone">
+            📁 Húzza ide a CSV fájlt vagy kattintson a Fájl betöltése gombra
+        </div>
+
+        <div class="controls">
+            <div class="file-input-wrapper">
+                <input type="file" id="csvFile" class="file-input" accept=".csv">
+                <label for="csvFile" class="file-input-label">
+                    📂 Családfa CSV
+                </label>
+            </div>
+
+            <div class="file-input-wrapper">
+                <input type="file" id="docFile" class="file-input" accept=".csv">
+                <label for="docFile" class="file-input-label" style="background: #764ba2;">
+                    📄 Dokumentum CSV
+                </label>
+            </div>
+
+            <button class="btn btn-primary" onclick="addNewRow()">
+                ➕ Új személy
+            </button>
+
+            <button class="btn btn-success" onclick="saveCSV()">
+                💾 Mentés CSV-ként
+            </button>
+
+            <div class="search-box">
+                <input type="text" id="searchInput" class="search-input" placeholder="Keresés név alapján..." oninput="filterTable()">
+                <span class="search-icon">🔍</span>
+            </div>
+
+            <div class="stats">
+                <div class="stat-item">
+                    Összesen: <span id="totalCount">0</span>
+                </div>
+                <div class="stat-item">
+                    Élő: <span id="aliveCount">0</span>
+                </div>
+                <div class="stat-item">
+                    Fotóval: <span id="photoCount">0</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="table-container" id="mainContainer">
+            <!-- Tartalom itt jelenik meg -->
+        </div>
+    </div>
+
+    <!-- SZERKESZTÉSI MODAL -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeEditModal()">&times;</span>
+            <h2 id="editModalTitle">Személy szerkesztése</h2>
+            <form id="editForm">
+                <div class="form-group">
+                    <label>ID:</label>
+                    <input type="text" id="editId" class="form-control" readonly>
+                </div>
+                <div class="form-group">
+                    <label>GEDCOM ID:</label>
+                    <input type="text" id="editGedcomId" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>Prefix:</label>
+                    <input type="text" id="editPrefix" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>Vezetéknév:</label>
+                    <input type="text" id="editLastName" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>Keresztnév:</label>
+                    <input type="text" id="editFirstName" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>Teljes név:</label>
+                    <input type="text" id="editFullName" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>Születési dátum:</label>
+                    <input type="text" id="editBirthDate" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>Születési hely:</label>
+                    <input type="text" id="editBirthPlace" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>Halálozási dátum:</label>
+                    <input type="text" id="editDeathDate" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>Halálozási hely:</label>
+                    <input type="text" id="editDeathPlace" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>Nem:</label>
+                    <select id="editGender" class="form-control">
+                        <option value="">Válassz...</option>
+                        <option value="M">Férfi</option>
+                        <option value="F">Nő</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Apa ID:</label>
+                    <input type="text" id="editFatherId" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>Anya ID:</label>
+                    <input type="text" id="editMotherId" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>Házastárs ID:</label>
+                    <input type="text" id="editSpouseId" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>Foglalkozás:</label>
+                    <input type="text" id="editOccupation" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>Temető:</label>
+                    <input type="text" id="editCemetery" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>Sírjel:</label>
+                    <input type="text" id="editGrave" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>Lakcím:</label>
+                    <input type="text" id="editAddress" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>Megjegyzések:</label>
+                    <textarea id="editNotes" class="form-control" rows="3"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Fotó van:</label>
+                    <select id="editPhoto" class="form-control">
+                        <option value="igen">Igen</option>
+                        <option value="nem">Nem</option>
+                    </select>
+                </div>
+                <div style="text-align: right; margin-top: 20px;">
+                    <button type="button" class="btn" style="background: #6c757d; color: white;" onclick="closeEditModal()">Mégse</button>
+                    <button type="submit" class="btn btn-success" style="margin-left: 10px;">💾 Mentés</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- DOKUMENTUM RÉSZLETEK PANEL -->
+    <div class="detail-panel" id="detailPanel">
+        <div class="panel-header">
+            <h3 id="panelTitle">Dokumentumok</h3>
+            <button class="close-btn" onclick="closePanel()">×</button>
+        </div>
+        <div class="panel-tabs">
+            <button class="panel-tab active" onclick="switchPanelTab(event, 'original')">Eredeti</button>
+            <button class="panel-tab" onclick="switchPanelTab(event, 'translation')">Fordítás</button>
+            <button class="panel-tab" onclick="switchPanelTab(event, 'notes')">Jegyzetek</button>
+        </div>
+        <div class="panel-content" id="panelContent"></div>
+    </div>
+
+    <script>
+        let familyData = [];
+        let documentData = [];
+        let filteredData = [];
+        let currentView = 'table';
+        let hasUnsavedChanges = false;
+        let editingIndex = -1;
+        let focusedPersonId = null;
+        let editingPersonId = null;
+        let selectedPersonIds = [];
+        let currentDocuments = [];
+
+        const CATEGORY_ICONS = {
+            'Hivatalos dokumentum': '📄',
+            'Oklevél': '🎓',
+            'Születési anyakönyvi kivonat': '👶',
+            'Házassági anyakönyvi kivonat': '❤️',
+            'Halotti anyakönyvi kivonat': '🔥',
+            'Fénykép': '📷',
+            'Kitüntetés': '🏆',
+            'Munkaviszony igazolás': '💼',
+            'Ingatlan dokumentum': '🏠',
+            'Levelezés': '✉️',
+            'Személyes írás': '📖',
+            'Katonai dokumentum': '🛡️',
+            'Egyéb dátum': '📅',
+            'Jogi dokumentum': '⚖️',
+            'Egészségügyi dokumentum': '💗',
+            'Újságcikk': '📰'
+        };
+
+        function markAsChanged() {
+            hasUnsavedChanges = true;
+            document.getElementById('unsavedIndicator').style.display = 'block';
+        }
+
+        function markAsSaved() {
+            hasUnsavedChanges = false;
+            document.getElementById('unsavedIndicator').style.display = 'none';
+        }
+
+        function setCurrentView(view) {
+            currentView = view;
+            
+            document.querySelectorAll('.nav-tab').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            if (view === 'table') {
+                document.getElementById('tabTable').classList.add('active');
+            } else if (view === 'navigation') {
+                document.getElementById('tabNavigation').classList.add('active');
+            } else if (view === 'timeline') {
+                document.getElementById('tabTimeline').classList.add('active');
+            }
+            
+            renderCurrentView();
+        }
+
+        function toggleSelection(personId, event) {
+            if (event) {
+                event.stopPropagation();
+            }
+            
+            const index = selectedPersonIds.indexOf(personId);
+            
+            if (index > -1) {
+                selectedPersonIds.splice(index, 1);
+            } else {
+                if (selectedPersonIds.length >= 5) {
+                    showAlert('Maximum 5 személy jelölhető ki!', 'warning');
+                    return;
+                }
+                selectedPersonIds.push(personId);
+            }
+            
+            updateSelectedCount();
+            renderCurrentView();
+        }
+
+        function updateSelectedCount() {
+            const countElement = document.getElementById('selectedCount');
+            if (countElement) {
+                countElement.textContent = selectedPersonIds.length;
+            }
+        }
+
+        function isSelected(personId) {
+            return selectedPersonIds.indexOf(personId) > -1;
+        }
+
+        function clearAllSelections() {
+            if (selectedPersonIds.length === 0) return;
+            
+            if (confirm('Biztosan törli az összes kijelölést?')) {
+                selectedPersonIds = [];
+                updateSelectedCount();
+                renderCurrentView();
+                showAlert('Minden kijelölés törölve!', 'info');
+            }
+        }
+
+        function renderCurrentView() {
+            const container = document.getElementById('mainContainer');
+            
+            if (currentView === 'table') {
+                container.innerHTML = `
+                    <table id="familyTable">
+                        <thead>
+                            <tr>
+                                <th class="narrow">ID</th>
+                                <th class="narrow">GEDCOM</th>
+                                <th class="narrow">Prefix</th>
+                                <th class="medium">Vezetéknév</th>
+                                <th class="medium">Keresztnév</th>
+                                <th class="wide">Teljes név</th>
+                                <th class="medium">Születés</th>
+                                <th class="medium">Születési hely</th>
+                                <th class="medium">Halál</th>
+                                <th class="medium">Halálozási hely</th>
+                                <th class="narrow">Nem</th>
+                                <th class="narrow">Apa ID</th>
+                                <th class="narrow">Anya ID</th>
+                                <th class="narrow">Házastárs</th>
+                                <th class="medium">Foglalkozás</th>
+                                <th class="medium">Temető</th>
+                                <th class="medium">Sírjel</th>
+                                <th class="medium">Lakcím</th>
+                                <th class="wide">Megjegyzések</th>
+                                <th class="narrow">Fotó</th>
+                                <th class="narrow">Műveletek</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody">
+                        </tbody>
+                    </table>
+                `;
+                renderTable();
+            } else if (currentView === 'navigation') {
+                container.innerHTML = `
+                    <div class="navigation-container">
+                        <div class="navigation-header">
+                            <h3>Családfa Navigátor</h3>
+                            <div>
+                                ${focusedPersonId ? `Fókusz: ${getFocusedPersonName()}` : 'Válassz személyt a navigáláshoz'}
+                            </div>
+                        </div>
+                        
+                        <div class="legend">
+                            <div class="legend-item">
+                                <div class="legend-color legend-focused"></div>
+                                <span>Fókuszban</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color legend-parent"></div>
+                                <span>Szülők</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color legend-sibling"></div>
+                                <span>Testvérek</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color legend-child"></div>
+                                <span>Gyerekek</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color legend-spouse"></div>
+                                <span>Házastárs</span>
+                            </div>
+                        </div>
+                        
+                        <div class="navigation-content" id="navigationContent">
+                        </div>
+                    </div>
+                `;
+                renderNavigationView();
+            } else if (currentView === 'timeline') {
+                renderTimelineView();
+            }
+        }
+
+        function renderTimelineView() {
+            const container = document.getElementById('mainContainer');
+            
+            container.innerHTML = `
+                <div class="selected-persons-section">
+                    <div class="selected-persons-header">
+                        <h3 style="margin: 0;">⭐ Kijelölt személyek (${selectedPersonIds.length}/5)</h3>
+                    </div>
+                    <div id="selectedPersonsChips"></div>
+                </div>
+                
+                <div class="timeline-section" id="timelineSection">
+                    <div class="timeline-header">
+                        <h2 id="timelineTitle">Válassz egy személyt az idővonalhoz</h2>
+                        <div class="timeline-info" id="timelineInfo">
+                            Kattints egy kijelölt személyre az idővonal megtekintéséhez
+                        </div>
+                    </div>
+                    <div id="timelineContent"></div>
+                </div>
+            `;
+            
+            renderSelectedPersonsChips();
+        }
+
+        function renderSelectedPersonsChips() {
+            const chipsContainer = document.getElementById('selectedPersonsChips');
+            if (!chipsContainer) return;
+            
+            if (selectedPersonIds.length === 0) {
+                chipsContainer.innerHTML = '<p style="color: #6b7280; font-style: italic;">Nincs kijelölt személy. Válassz személyeket a Családfa Navigátor nézetben!</p>';
+                return;
+            }
+            
+            chipsContainer.innerHTML = selectedPersonIds.map(personId => {
+                const person = familyData.find(p => p.ID === personId);
+                if (!person) return '';
+                
+                return `
+                    <div class="selected-person-chip" onclick="selectPersonForTimeline('${personId}')" style="cursor: pointer;">
+                        <span>${person.Teljes_név || person.Keresztnév || 'Névtelen'}</span>
+                        <button class="remove-person-btn" onclick="event.stopPropagation(); toggleSelection('${personId}', event)" title="Eltávolítás">×</button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function selectPersonForTimeline(personId) {
+            renderTimeline(personId);
+        }
+
+        function renderTimeline(personId) {
+            const person = familyData.find(p => p.ID === personId);
+            if (!person) return;
+
+            const personDocs = documentData.filter(doc => doc.ID === personId);
+            
+            document.getElementById('timelineTitle').textContent = person.Teljes_név || person.Keresztnév || 'Névtelen';
+
+            let startYear, endYear;
+            const birthYear = getYear(person.Születési_dátum);
+            const deathYear = getYear(person.Halálozási_dátum);
+
+            if (birthYear && deathYear) {
+                startYear = birthYear;
+                endYear = deathYear;
+                document.getElementById('timelineInfo').textContent = 
+                    `Időszak: ${startYear} - ${endYear} (${endYear - startYear} év)`;
+            } else {
+                const docYears = personDocs
+                    .map(doc => getYear(doc.Datum))
+                    .filter(y => y !== null);
+                
+                if (docYears.length > 0) {
+                    const earliestDoc = Math.min(...docYears);
+                    startYear = earliestDoc - 40;
+                    endYear = earliestDoc + 40;
+                    document.getElementById('timelineInfo').textContent = 
+                        `Becsült időszak: ${startYear} - ${endYear} (±40 év a legkorábbi eseménytől)`;
+                } else {
+                    startYear = 1900;
+                    endYear = 2000;
+                    document.getElementById('timelineInfo').textContent = 
+                        'Nincs elegendő dátuminformáció';
+                }
+            }
+
+            const allDocs = documentData;
+            
+            const timelineHTML = `
+                <div class="timeline-axis">
+                    <div class="axis-line"></div>
+                    <div class="year-markers">
+                        <span class="year-marker">${startYear}</span>
+                        <span class="year-marker">${Math.floor((startYear + endYear) / 2)}</span>
+                        <span class="year-marker">${endYear}</span>
+                    </div>
+                    <div class="events-container">
+                        ${allDocs.map(doc => {
+                            const docYear = getYear(doc.Datum);
+                            if (!docYear) return '';
+                            
+                            const position = ((docYear - startYear) / (endYear - startYear)) * 100;
+                            const icon = CATEGORY_ICONS[doc.Kategoria] || '📄';
+                            const isActive = doc.ID === personId;
+                            
+                            return `
+                                <div class="event-icon ${isActive ? '' : 'inactive'}" 
+                                     style="left: ${position}%; background: ${isActive ? '#667eea' : '#d1d5db'};"
+                                     ${isActive ? `onclick="showDocuments('${doc.Datum}', '${personId}')"` : ''}>
+                                    ${icon}
+                                    <div class="event-label">${docYear}</div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('timelineContent').innerHTML = timelineHTML;
+        }
+
+        function showDocuments(date, personId) {
+            currentDocuments = documentData.filter(doc => 
+                doc.Datum === date && doc.ID === personId
+            );
+            
+            if (currentDocuments.length === 0) return;
+
+            document.getElementById('panelTitle').textContent = 
+                `${currentDocuments[0].Kategoria} - ${date}`;
+            
+            const originalTab = document.querySelector('.panel-tab');
+            if (originalTab) {
+                switchPanelTab({target: originalTab}, 'original');
+            }
+            document.getElementById('detailPanel').classList.add('open');
+        }
+
+        function switchPanelTab(event, tab) {
+            document.querySelectorAll('.panel-tab').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+
+            const content = document.getElementById('panelContent');
+            
+            if (currentDocuments.length === 0) {
+                content.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📭</div>Nincs megjeleníthető dokumentum</div>';
+                return;
+            }
+
+            if (tab === 'original') {
+                content.innerHTML = currentDocuments.map(doc => {
+                    const imageUrl = doc.Link ? 
+                        doc.Link.replace('/view?usp=drivesdk', '').replace('/file/d/', '/uc?id=').replace('/view', '') :
+                        '';
+                    
+                    return `
+                        <div class="document-item">
+                            ${imageUrl ? `<img src="${imageUrl}" class="document-image" alt="${doc.DokNev}" onerror="this.style.display='none'">` : ''}
+                            <div class="document-info">
+                                <div class="document-title">${doc.DokNev}</div>
+                                <div class="document-meta">${doc.Datum}${doc.Hely ? ' • ' + doc.Hely : ''}</div>
+                                ${doc.Leiras ? `<p style="margin-top: 8px; color: #374151; font-size: 14px;">${doc.Leiras}</p>` : ''}
+                                ${doc.Hely ? `<p style="margin-top: 4px; font-size: 13px; color: #6b7280;"><strong>Helyszín:</strong> ${doc.Hely}</p>` : ''}
+                                ${doc.Link ? `<a href="${doc.Link}" target="_blank" style="font-size: 12px; color: #667eea; margin-top: 8px; display: inline-block;">🔗 Megnyitás Drive-ban</a>` : ''}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } else if (tab === 'translation') {
+                // Ellenőrizzük, hogy van-e bármelyik dokumentumnak fordítás linkje
+                const docsWithTranslation = currentDocuments.filter(doc => {
+                    const link = doc.Forditas_Link || doc['Fordítás_Link'] || '';
+                    return link && link.trim().length > 0 && link.includes('http');
+                });
+                
+                if (docsWithTranslation.length === 0) {
+                    content.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📄</div>Nincs fordítás feltöltve</div>';
+                    return;
+                }
+                
+                content.innerHTML = docsWithTranslation.map(doc => {
+                    const translationLink = doc.Forditas_Link || doc['Fordítás_Link'] || '';
+                    const imageUrl = translationLink.replace('/view?usp=drivesdk', '').replace('/file/d/', '/uc?id=').replace('/view', '');
+                    
+                    return `
+                        <div class="document-item">
+                            <img src="${imageUrl}" class="document-image" alt="Fordítás - ${doc.DokNev}" onerror="this.style.display='none'">
+                            <div class="document-info">
+                                <div class="document-title">Fordítás: ${doc.DokNev || 'Névtelen'}</div>
+                                <div class="document-meta">${doc.Datum || ''}</div>
+                                <a href="${translationLink}" target="_blank" style="font-size: 12px; color: #667eea; margin-top: 8px; display: inline-block;">🔗 Megnyitás Drive-ban</a>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } else if (tab === 'notes') {
+                // Ellenőrizzük, hogy van-e bármelyik dokumentumnak jegyzet linkje
+                const docsWithNotes = currentDocuments.filter(doc => {
+                    const link = doc.Jegyzet_Link || doc['Jegyzet_Link'] || '';
+                    return link && link.trim().length > 0 && link.includes('http');
+                });
+                
+                if (docsWithNotes.length === 0) {
+                    content.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📝</div>Nincs jegyzet feltöltve</div>';
+                    return;
+                }
+                
+                content.innerHTML = docsWithNotes.map(doc => {
+                    const noteLink = doc.Jegyzet_Link || doc['Jegyzet_Link'] || '';
+                    const imageUrl = noteLink.replace('/view?usp=drivesdk', '').replace('/file/d/', '/uc?id=').replace('/view', '');
+                    
+                    return `
+                        <div class="document-item">
+                            <img src="${imageUrl}" class="document-image" alt="Jegyzet - ${doc.DokNev}" onerror="this.style.display='none'">
+                            <div class="document-info">
+                                <div class="document-title">Jegyzet: ${doc.DokNev || 'Névtelen'}</div>
+                                <div class="document-meta">${doc.Datum || ''}</div>
+                                <a href="${noteLink}" target="_blank" style="font-size: 12px; color: #667eea; margin-top: 8px; display: inline-block;">🔗 Megnyitás Drive-ban</a>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+        }
+
+        function closePanel() {
+            document.getElementById('detailPanel').classList.remove('open');
+        }
+
+        function getYear(dateStr) {
+            if (!dateStr || dateStr === '?' || dateStr === '') return null;
+            const yearMatch = dateStr.match(/(\d{4})/);
+            return yearMatch ? parseInt(yearMatch[1]) : null;
+        }
+
+        function getFocusedPersonName() {
+            if (!focusedPersonId) return 'Nincs';
+            const person = familyData.find(p => p.ID === focusedPersonId);
+            return person ? (person.Teljes_név || person.Keresztnév || 'Névtelen') : 'Ismeretlen';
+        }
+
+        function setFocusedPerson(personId) {
+            focusedPersonId = personId;
+            if (currentView === 'navigation') {
+                renderNavigationView();
+            }
+        }
+
+        function resetFocus() {
+            focusedPersonId = null;
+            if (currentView === 'navigation') {
+                renderNavigationView();
+            }
+        }
+
+        function calculateRelatives(personId) {
+            if (!personId || !familyData) return { parents: [], siblings: [], children: [], spouse: null };
+            
+            const person = familyData.find(p => p.ID === personId);
+            if (!person) return { parents: [], siblings: [], children: [], spouse: null };
+            
+            const parents = [];
+            if (person.Apa_ID) {
+                const father = familyData.find(p => p.ID === person.Apa_ID);
+                if (father) parents.push(father);
+            }
+            if (person.Anya_ID) {
+                const mother = familyData.find(p => p.ID === person.Anya_ID);
+                if (mother) parents.push(mother);
+            }
+            
+            const siblings = familyData.filter(p => 
+                p.ID !== personId && 
+                ((p.Apa_ID && person.Apa_ID && p.Apa_ID === person.Apa_ID) || 
+                 (p.Anya_ID && person.Anya_ID && p.Anya_ID === person.Anya_ID))
+            );
+            
+            const children = familyData.filter(p => 
+                (p.Apa_ID && p.Apa_ID === personId) || 
+                (p.Anya_ID && p.Anya_ID === personId)
+            );
+            
+            let spouse = null;
+            if (person.Házastárs_ID) {
+                spouse = familyData.find(p => p.ID === person.Házastárs_ID);
+            }
+            if (!spouse) {
+                spouse = familyData.find(p => p.Házastárs_ID === personId);
+            }
+            
+            return { parents, siblings, children, spouse };
+        }
+
+        function getLineageType(person, focusedPerson) {
+            if (!focusedPerson) return '';
+            
+            if (person.ID === focusedPerson.Apa_ID) return 'APAI ÁG';
+            if (person.ID === focusedPerson.Anya_ID) return 'ANYAI ÁG';
+            
+            if (person.Apa_ID === focusedPerson.Apa_ID && person.Anya_ID === focusedPerson.Anya_ID) {
+                return 'TESTVÉR';
+            } else if (person.Apa_ID === focusedPerson.Apa_ID) {
+                return 'APAI FÉLTESTVÉR';
+            } else if (person.Anya_ID === focusedPerson.Anya_ID) {
+                return 'ANYAI FÉLTESTVÉR';
+            }
+            
+            return '';
+        }
+
+        function renderNavigationView() {
+            const navigationContent = document.getElementById('navigationContent');
+            if (!navigationContent) return;
+            
+            if (!familyData || familyData.length === 0) {
+                navigationContent.innerHTML = '<div class="no-data">Nincs betöltött családi adat. Kérem töltse be a CSV fájlt!</div>';
+                return;
+            }
+            
+            let html = '';
+            
+            html += `
+                <div style="text-align: center; margin-bottom: 15px;">
+                    <button class="btn btn-primary" onclick="resetFocus()">🔄 Alaphelyzet</button>
+                </div>
+            `;
+            
+            if (!focusedPersonId) {
+                html += '<div class="no-data" style="margin-bottom: 20px;">Kattintson egy személyre a navigálás kezdéséhez</div>';
+                
+                // Most a filteredData-t használjuk, hogy a keresés működjön!
+                filteredData.forEach(person => {
+                    html += renderPersonCard(person, 'selectable');
+                });
+                
+                navigationContent.innerHTML = html;
+                return;
+            }
+            
+            const focusedPerson = familyData.find(p => p.ID === focusedPersonId);
+            if (!focusedPerson) {
+                navigationContent.innerHTML = html + '<div class="no-data">A fókuszált személy nem található!</div>';
+                return;
+            }
+            
+            const relatives = calculateRelatives(focusedPersonId);
+            
+            html += renderPersonCard(focusedPerson, 'focused', 'FÓKUSZBAN');
+            
+            relatives.parents.forEach(parent => {
+                const lineage = getLineageType(parent, focusedPerson);
+                html += renderPersonCard(parent, 'parent', lineage);
+            });
+            
+            if (relatives.spouse) {
+                html += renderPersonCard(relatives.spouse, 'spouse', 'HÁZASTÁRS');
+            }
+            
+            relatives.siblings.forEach(sibling => {
+                const lineage = getLineageType(sibling, focusedPerson);
+                html += renderPersonCard(sibling, 'sibling', lineage);
+            });
+            
+            relatives.children.forEach(child => {
+                html += renderPersonCard(child, 'child', 'GYEREK');
+            });
+            
+            navigationContent.innerHTML = html;
+        }
+
+        function renderPersonCard(person, relationshipType, headerText = '') {
+            const isDeceased = person.Halálozási_dátum && person.Halálozási_dátum.trim() !== '';
+            const deceasedClass = isDeceased ? 'deceased' : '';
+            const selectedClass = isSelected(person.ID) ? 'selected' : '';
+            const selectionIcon = isSelected(person.ID) ? '⭐' : '☆';
+            
+            const birthYear = extractYear(person.Születési_dátum);
+            const deathYear = isDeceased ? extractYear(person.Halálozási_dátum) : '';
+            
+            return `
+                <div class="person-card ${relationshipType} ${deceasedClass} ${selectedClass}" data-person-id="${person.ID}">
+                    ${headerText ? `<div class="card-header">${headerText}</div>` : ''}
+                    
+                    <div class="card-content">
+                        <div class="person-name">
+                            ${person.Teljes_név || person.Keresztnév || 'Névtelen'}
+                            ${isDeceased ? '' : ' (élő)'}
+                        </div>
+                        <div class="person-details">
+                            ${birthYear}${deathYear ? ` - ${deathYear}` : ' - élő'} 
+                            ${person.Foglalkozás ? ` • ${person.Foglalkozás}` : ''}
+                            • ID: ${person.ID}
+                        </div>
+                    </div>
+                    
+                    <div class="selection-icon" onclick="toggleSelection('${person.ID}', event)" title="Kijelölés/Kijelölés törlése">
+                        ${selectionIcon}
+                    </div>
+                    
+                    <div class="click-areas">
+                        <div class="click-left" onclick="editPersonById('${person.ID}')" title="Bal klik: szerkesztés"></div>
+                        <div class="click-right" onclick="setFocusedPerson('${person.ID}')" title="Jobb klik: fókusz"></div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function editPersonById(personId) {
+            const person = familyData.find(p => p.ID === personId);
+            if (!person) return;
+            
+            editingPersonId = personId;
+            editingIndex = -1;
+            
+            document.getElementById('editModalTitle').textContent = `Szerkesztés: ${person.Teljes_név || person.Keresztnév || 'Névtelen'}`;
+            
+            document.getElementById('editId').value = person.ID || '';
+            document.getElementById('editGedcomId').value = person.GEDCOM_ID || '';
+            document.getElementById('editPrefix').value = person.Prefix || '';
+            document.getElementById('editLastName').value = person.Vezetéknév || '';
+            document.getElementById('editFirstName').value = person.Keresztnév || '';
+            document.getElementById('editFullName').value = person.Teljes_név || '';
+            document.getElementById('editBirthDate').value = person.Születési_dátum || '';
+            document.getElementById('editBirthPlace').value = person.Születési_hely || '';
+            document.getElementById('editDeathDate').value = person.Halálozási_dátum || '';
+            document.getElementById('editDeathPlace').value = person.Halálozási_hely || '';
+            document.getElementById('editGender').value = person.Nem || '';
+            document.getElementById('editFatherId').value = person.Apa_ID || '';
+            document.getElementById('editMotherId').value = person.Anya_ID || '';
+            document.getElementById('editSpouseId').value = person.Házastárs_ID || '';
+            document.getElementById('editOccupation').value = person.Foglalkozás || '';
+            document.getElementById('editCemetery').value = person.Temető || '';
+            document.getElementById('editGrave').value = person.Sírjel || '';
+            document.getElementById('editAddress').value = person.Lakcím || '';
+            document.getElementById('editNotes').value = person.Megjegyzések || '';
+            document.getElementById('editPhoto').value = person.Fotó_van || 'nem';
+            
+            document.getElementById('editModal').style.display = 'block';
+        }
+
+        function editRow(index) {
+            const person = filteredData[index];
+            editingPersonId = person.ID;
+            editingIndex = index;
+            
+            document.getElementById('editModalTitle').textContent = `Szerkesztés: ${person.Teljes_név || person.Keresztnév || 'Névtelen'}`;
+            
+            document.getElementById('editId').value = person.ID || '';
+            document.getElementById('editGedcomId').value = person.GEDCOM_ID || '';
+            document.getElementById('editPrefix').value = person.Prefix || '';
+            document.getElementById('editLastName').value = person.Vezetéknév || '';
+            document.getElementById('editFirstName').value = person.Keresztnév || '';
+            document.getElementById('editFullName').value = person.Teljes_név || '';
+            document.getElementById('editBirthDate').value = person.Születési_dátum || '';
+            document.getElementById('editBirthPlace').value = person.Születési_hely || '';
+            document.getElementById('editDeathDate').value = person.Halálozási_dátum || '';
+            document.getElementById('editDeathPlace').value = person.Halálozási_hely || '';
+            document.getElementById('editGender').value = person.Nem || '';
+            document.getElementById('editFatherId').value = person.Apa_ID || '';
+            document.getElementById('editMotherId').value = person.Anya_ID || '';
+            document.getElementById('editSpouseId').value = person.Házastárs_ID || '';
+            document.getElementById('editOccupation').value = person.Foglalkozás || '';
+            document.getElementById('editCemetery').value = person.Temető || '';
+            document.getElementById('editGrave').value = person.Sírjel || '';
+            document.getElementById('editAddress').value = person.Lakcím || '';
+            document.getElementById('editNotes').value = person.Megjegyzések || '';
+            document.getElementById('editPhoto').value = person.Fotó_van || 'nem';
+            
+            document.getElementById('editModal').style.display = 'block';
+        }
+
+        function closeEditModal() {
+            document.getElementById('editModal').style.display = 'none';
+            editingIndex = -1;
+            editingPersonId = null;
+        }
+
+        function saveEditedPerson() {
+            if (!editingPersonId) return;
+            
+            const personIndex = familyData.findIndex(p => p.ID === editingPersonId);
+            if (personIndex === -1) return;
+            
+            const person = familyData[personIndex];
+            
+            person.ID = document.getElementById('editId').value;
+            person.GEDCOM_ID = document.getElementById('editGedcomId').value;
+            person.Prefix = document.getElementById('editPrefix').value;
+            person.Vezetéknév = document.getElementById('editLastName').value;
+            person.Keresztnév = document.getElementById('editFirstName').value;
+            person.Teljes_név = document.getElementById('editFullName').value;
+            person.Születési_dátum = document.getElementById('editBirthDate').value;
+            person.Születési_hely = document.getElementById('editBirthPlace').value;
+            person.Halálozási_dátum = document.getElementById('editDeathDate').value;
+            person.Halálozási_hely = document.getElementById('editDeathPlace').value;
+            person.Nem = document.getElementById('editGender').value;
+            person.Apa_ID = document.getElementById('editFatherId').value;
+            person.Anya_ID = document.getElementById('editMotherId').value;
+            person.Házastárs_ID = document.getElementById('editSpouseId').value;
+            person.Foglalkozás = document.getElementById('editOccupation').value;
+            person.Temető = document.getElementById('editCemetery').value;
+            person.Sírjel = document.getElementById('editGrave').value;
+            person.Lakcím = document.getElementById('editAddress').value;
+            person.Megjegyzések = document.getElementById('editNotes').value;
+            person.Fotó_van = document.getElementById('editPhoto').value;
+            
+            filteredData = [...familyData];
+            
+            markAsChanged();
+            closeEditModal();
+            renderCurrentView();
+            updateStats();
+            
+            const personName = person.Teljes_név || person.Keresztnév || 'Névtelen';
+            showAlert(`${personName} adatai mentve!`, 'success');
+        }
+
+        function extractYear(dateStr) {
+            if (!dateStr) return '?';
+            const yearMatch = dateStr.match(/\b(18|19|20)\d{2}\b/);
+            return yearMatch ? yearMatch[0] : '?';
+        }
+
+        function parseCSVLine(line) {
+            const result = [];
+            let current = '';
+            let inQuotes = false;
+            let i = 0;
+            
+            while (i < line.length) {
+                const char = line[i];
+                
+                if (char === '"') {
+                    if (inQuotes && i + 1 < line.length && line[i + 1] === '"') {
+                        current += '"';
+                        i += 2;
+                    } else {
+                        inQuotes = !inQuotes;
+                        i++;
+                    }
+                } else if (char === ',' && !inQuotes) {
+                    result.push(current.trim());
+                    current = '';
+                    i++;
+                } else {
+                    current += char;
+                    i++;
+                }
+            }
+            
+            result.push(current.trim());
+            return result;
+        }
+
+        function parseCSV(csvText, isDocumentCSV = false) {
+            const lines = csvText.trim().split(/\r?\n/);
+            
+            if (lines.length < 2) {
+                showAlert('Hibás CSV formátum! Minimum 2 sor szükséges (fejléc + adatok).', 'danger');
+                return;
+            }
+            
+            const headerLine = lines[0];
+            const headers = parseCSVLine(headerLine);
+            const cleanHeaders = headers.map(h => h.replace(/^["']|["']$/g, '').trim());
+            
+            if (isDocumentCSV) {
+                documentData = [];
+                let successCount = 0;
+                let errorCount = 0;
+                
+                for (let i = 1; i < lines.length; i++) {
+                    const line = lines[i].trim();
+                    if (line) {
+                        try {
+                            const values = parseCSVLine(line);
+                            const doc = {};
+                            cleanHeaders.forEach((header, index) => {
+                                doc[header] = values[index] ? values[index].replace(/^["']|["']$/g, '').trim() : '';
+                            });
+                            documentData.push(doc);
+                            successCount++;
+                        } catch (error) {
+                            errorCount++;
+                        }
+                    }
+                }
+                
+                showAlert(`${documentData.length} dokumentum betöltve (${errorCount} hiba)`, 
+                          errorCount > 0 ? 'info' : 'success');
+                
+                if (currentView === 'timeline') {
+                    renderCurrentView();
+                }
+                return;
+            }
+            
+            familyData = [];
+            let successCount = 0;
+            let errorCount = 0;
+            
+            for (let i = 1; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (line) {
+                    try {
+                        const values = parseCSVLine(line);
+                        
+                        if (values.length >= cleanHeaders.length - 5) {
+                            const person = {};
+                            cleanHeaders.forEach((header, index) => {
+                                person[header] = values[index] ? values[index].replace(/^["']|["']$/g, '').trim() : '';
+                            });
+                            familyData.push(person);
+                            successCount++;
+                        } else {
+                            errorCount++;
+                        }
+                    } catch (error) {
+                        errorCount++;
+                    }
+                }
+            }
+            
+            if (familyData.length === 0) {
+                showAlert('Nem sikerült egyetlen rekordot sem beolvasni!', 'danger');
+                return;
+            }
+            
+            filteredData = [...familyData];
+            focusedPersonId = null;
+            renderCurrentView();
+            updateStats();
+            
+            showAlert(`${familyData.length} személy adatai betöltve (${errorCount} hiba)`, 
+                      errorCount > 0 ? 'info' : 'success');
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('tableBody');
+            if (!tbody) return;
+            
+            tbody.innerHTML = '';
+            
+            if (filteredData.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="21" style="text-align: center; padding: 20px;">Nincs megjeleníthető adat</td></tr>';
+                return;
+            }
+            
+            filteredData.forEach((person, index) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><strong>${escapeHtml(person.ID || '')}</strong></td>
+                    <td>${escapeHtml(person.GEDCOM_ID || '')}</td>
+                    <td>${escapeHtml(person.Prefix || '')}</td>
+                    <td>${escapeHtml(person.Vezetéknév || '')}</td>
+                    <td>${escapeHtml(person.Keresztnév || '')}</td>
+                    <td><strong>${escapeHtml(person.Teljes_név || '')}</strong></td>
+                    <td>${escapeHtml(person.Születési_dátum || '')}</td>
+                    <td>${escapeHtml(person.Születési_hely || '')}</td>
+                    <td>${escapeHtml(person.Halálozási_dátum || '')}</td>
+                    <td>${escapeHtml(person.Halálozási_hely || '')}</td>
+                    <td>${person.Nem === 'M' ? 'M' : person.Nem === 'F' ? 'F' : ''}</td>
+                    <td>${escapeHtml(person.Apa_ID || '')}</td>
+                    <td>${escapeHtml(person.Anya_ID || '')}</td>
+                    <td>${escapeHtml(person.Házastárs_ID || '')}</td>
+                    <td>${escapeHtml(person.Foglalkozás || '')}</td>
+                    <td>${escapeHtml(person.Temető || '')}</td>
+                    <td>${escapeHtml(person.Sírjel || '')}</td>
+                    <td>${escapeHtml(person.Lakcím || '')}</td>
+                    <td>${escapeHtml(person.Megjegyzések || '')}</td>
+                    <td>${person.Fotó_van === 'igen' ? 'Igen' : 'Nem'}</td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="edit-btn" onclick="editRow(${index})" title="Szerkesztés">EDIT</button>
+                            <button class="delete-btn" onclick="deleteRow(${index})" title="Törlés">DEL</button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function escapeHtml(unsafe) {
+            return unsafe
+                 .replace(/&/g, "&amp;")
+                 .replace(/</g, "&lt;")
+                 .replace(/>/g, "&gt;")
+                 .replace(/"/g, "&quot;")
+                 .replace(/'/g, "&#039;");
+        }
+
+        function addNewRow() {
+            const maxId = Math.max(...familyData.map(p => parseInt(p.ID) || 0), 0);
+            const newPerson = {
+                ID: (maxId + 1).toString(),
+                GEDCOM_ID: '',
+                Prefix: '',
+                Vezetéknév: '',
+                Keresztnév: '',
+                Teljes_név: '',
+                Születési_dátum: '',
+                Születési_hely: '',
+                Halálozási_dátum: '',
+                Halálozási_hely: '',
+                Nem: '',
+                Apa_ID: '',
+                Anya_ID: '',
+                Házastárs_ID: '',
+                Foglalkozás: '',
+                Temető: '',
+                Sírjel: '',
+                Lakcím: '',
+                Megjegyzések: '',
+                Fotó_van: 'nem'
+            };
+            
+            familyData.push(newPerson);
+            filteredData = [...familyData];
+            markAsChanged();
+            renderCurrentView();
+            updateStats();
+            showAlert('Új személy hozzáadva!', 'success');
+        }
+
+        function deleteRow(index) {
+            if (confirm('Biztosan törli ezt a személyt?')) {
+                const personToDelete = filteredData[index];
+                const deletedName = personToDelete.Teljes_név || personToDelete.Keresztnév || 'Névtelen';
+                
+                if (personToDelete.ID === focusedPersonId) {
+                    focusedPersonId = null;
+                }
+                
+                familyData = familyData.filter(p => p !== personToDelete);
+                filteredData = filteredData.filter((_, i) => i !== index);
+                markAsChanged();
+                renderCurrentView();
+                updateStats();
+                showAlert(`Személy törölve: ${deletedName}`, 'success');
+            }
+        }
+
+        function filterTable() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            
+            if (!searchTerm) {
+                filteredData = [...familyData];
+            } else {
+                filteredData = familyData.filter(person => 
+                    (person.Teljes_név || '').toLowerCase().includes(searchTerm) ||
+                    (person.Vezetéknév || '').toLowerCase().includes(searchTerm) ||
+                    (person.Keresztnév || '').toLowerCase().includes(searchTerm) ||
+                    (person.GEDCOM_ID || '').toLowerCase().includes(searchTerm) ||
+                    (person.ID || '').toLowerCase().includes(searchTerm)
+                );
+            }
+            
+            // Mindig újrarendereljük az aktuális nézetet
+            renderCurrentView();
+            updateStats();
+        }
+
+        function updateStats() {
+            const total = familyData.length;
+            const alive = familyData.filter(p => !p.Halálozási_dátum || p.Halálozási_dátum.trim() === '').length;
+            const withPhoto = familyData.filter(p => p.Fotó_van === 'igen').length;
+            
+            document.getElementById('totalCount').textContent = total;
+            document.getElementById('aliveCount').textContent = alive;
+            document.getElementById('photoCount').textContent = withPhoto;
+        }
+
+        function saveCSV() {
+            const headers = ['ID', 'GEDCOM_ID', 'Prefix', 'Vezetéknév', 'Keresztnév', 'Teljes_név', 'Születési_dátum', 'Születési_hely', 'Halálozási_dátum', 'Halálozási_hely', 'Nem', 'Apa_ID', 'Anya_ID', 'Házastárs_ID', 'Foglalkozás', 'Temető', 'Sírjel', 'Lakcím', 'Megjegyzések', 'Fotó_van'];
+            
+            let csvContent = '"' + headers.join('","') + '"\n';
+            
+            familyData.forEach(person => {
+                const row = headers.map(header => {
+                    let value = person[header] || '';
+                    if (value.includes(',') || value.includes('"') || value.includes('\n') || value.includes('\r')) {
+                        value = '"' + value.replace(/"/g, '""') + '"';
+                    } else {
+                        value = '"' + value + '"';
+                    }
+                    return value;
+                });
+                csvContent += row.join(',') + '\n';
+            });
+            
+            const now = new Date();
+            const timestamp = now.getFullYear() + '-' + 
+                              String(now.getMonth() + 1).padStart(2, '0') + '-' + 
+                              String(now.getDate()).padStart(2, '0') + '_' + 
+                              String(now.getHours()).padStart(2, '0') + '-' + 
+                              String(now.getMinutes()).padStart(2, '0') + '-' + 
+                              String(now.getSeconds()).padStart(2, '0');
+            
+            const filename = `tauszig_family_unified_${timestamp}.csv`;
+            
+            const BOM = '\uFEFF';
+            const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+            
+            markAsSaved();
+            showAlert(`CSV fájl mentve: ${filename}`, 'success');
+        }
+
+        function showAlert(message, type) {
+            const alertContainer = document.getElementById('alertContainer');
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type}`;
+            alert.textContent = message;
+            
+            alertContainer.appendChild(alert);
+            
+            setTimeout(() => {
+                if (alert.parentNode) {
+                    alert.remove();
+                }
+            }, 5000);
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('editForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                saveEditedPerson();
+            });
+        });
+
+        document.getElementById('csvFile').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    parseCSV(e.target.result, false);
+                    showAlert(`Családfa CSV betöltve: ${file.name}`, 'success');
+                };
+                reader.readAsText(file, 'UTF-8');
+            }
+        });
+
+        document.getElementById('docFile').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    parseCSV(e.target.result, true);
+                    showAlert(`Dokumentum CSV betöltve: ${file.name}`, 'success');
+                };
+                reader.readAsText(file, 'UTF-8');
+            }
+        });
+
+        const dropZone = document.getElementById('dropZone');
+        dropZone.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+
+        dropZone.addEventListener('dragleave', function(e) {
+            dropZone.classList.remove('dragover');
+        });
+
+        dropZone.addEventListener('drop', function(e) {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                const file = files[0];
+                if (file.type === 'text/csv' || file.name.endsWith('.csv')) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        parseCSV(e.target.result, false);
+                        showAlert(`CSV fájl betöltve: ${file.name}`, 'success');
+                    };
+                    reader.readAsText(file, 'UTF-8');
+                } else {
+                    showAlert('Csak CSV fájlokat lehet feltölteni!', 'danger');
+                }
+            }
+        });
+
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.key === 's') {
+                e.preventDefault();
+                if (familyData.length > 0) {
+                    saveCSV();
+                }
+            }
+        });
+
+        window.addEventListener('beforeunload', function(e) {
+            if (hasUnsavedChanges) {
+                const message = 'Van mentetlen módosítás! Biztosan elhagyod az oldalt?';
+                e.returnValue = message;
+                return message;
+            }
+        });
+
+        window.onclick = function(event) {
+            const editModal = document.getElementById('editModal');
+            if (event.target === editModal) {
+                closeEditModal();
+            }
+        }
+
+        window.addEventListener('load', function() {
+            setCurrentView('table');
+            updateSelectedCount();
+            showAlert('Tauszig Családfa + Idővonal egyesített verzió betöltve!', 'success');
+        });
+    </script>
+</body>
+</html>
